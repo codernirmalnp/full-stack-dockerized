@@ -1,0 +1,78 @@
+version: "3.8"
+services:
+  nestjs-app:
+    container_name: nestjs-app
+    build: ./typescript-starter
+    restart: unless-stopped
+    env_file: ./.env
+    ports:
+      - $NESTJS_APP_LOCAL_PORT:$NESTJS_APP_DOCKER_PORT
+    environment:
+      - POSTGRES_HOST=$POSTGRES_HOST
+      - POSTGRES_USER=$POSTGRES_USER
+      - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+      - POSTGRES_DB=$POSTGRES_DB
+      - POSTGRES_PORT=$POSTGRES_PORT
+      - JWT_SECRET:$JWT_SECRET
+      - JWT_EXPIRATION_TIME:$JWT_EXPIRATION_TIME
+    
+    stdin_open: true
+    tty: true
+    networks:
+    - postgres
+    
+    depends_on:
+      - postgres
+      # - pgadmin
+    
+
+  nextjs-app:
+    container_name: nextjs-app
+    # depends_on: 
+      # - nestjs-app
+    build:
+      context: ./my-project
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: ./.env
+    ports:
+      - $NEXTJS_APP_LOCAL_PORT:$NEXTJS_APP_DOCKER_PORT
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./my-project:/app
+      - /app/node_modules
+      - /app/.next
+  
+
+
+  postgres:
+    container_name: postgres
+    image: postgres:latest
+    ports:
+    - "5432:5432"
+    volumes:
+    - /data/postgres:/data/postgres
+    env_file:
+    - docker.env
+    networks:
+    - postgres
+ 
+  pgadmin:
+    links:
+    - postgres:postgres
+    container_name: pgadmin
+    image: dpage/pgadmin4
+    ports:
+    - "8080:80"
+    volumes:
+    - /data/pgadmin:/root/.pgadmin
+    env_file:
+    - docker.env
+    networks:
+    - postgres
+ 
+ 
+networks:
+  postgres:
+    driver: bridge
